@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 100" width="100%" height="100%">
+  <defs>
+    <linearGradient id="cyanGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#16B8D4" />
+      <stop offset="100%" stop-color="#4F9DDA" />
+    </linearGradient>
+    <linearGradient id="cloudGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#214568" />
+      <stop offset="100%" stop-color="#0E2338" />
+    </linearGradient>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="3" result="glow" />
+      <feComposite in="SourceGraphic" in2="glow" operator="over" />
+    </filter>
+  </defs>
+
+  <!-- Logo Icon -->
+  <g transform="translate(10, 10)">
+    <!-- Cloud Shape -->
+    <path d="M 28 55 A 16 16 0 0 1 20 25 A 22 22 0 0 1 54 18 A 20 20 0 0 1 76 34 A 15 15 0 0 1 72 55 Z" 
+          fill="url(#cloudGrad)" stroke="#16B8D4" stroke-width="2.5" />
+    
+    <!-- AI Neural Network Nodes in Cloud -->
+    <circle cx="34" cy="36" r="3.5" fill="#16B8D4" filter="url(#glow)" />
+    <circle cx="50" cy="28" r="4" fill="#4F9DDA" filter="url(#glow)" />
+    <circle cx="62" cy="40" r="3.5" fill="#27C58A" filter="url(#glow)" />
+    <line x1="34" y1="36" x2="50" y2="28" stroke="#16B8D4" stroke-width="1.5" stroke-dasharray="2,2" opacity="0.8" />
+    <line x1="50" y1="28" x2="62" y2="40" stroke="#4F9DDA" stroke-width="1.5" stroke-dasharray="2,2" opacity="0.8" />
+    
+    <!-- Raindrop Digital Data Streams -->
+    <line x1="28" y1="62" x2="22" y2="76" stroke="url(#cyanGrad)" stroke-width="2.5" stroke-linecap="round" />
+    <line x1="44" y1="64" x2="38" y2="82" stroke="url(#cyanGrad)" stroke-width="3" stroke-linecap="round" />
+    <line x1="60" y1="62" x2="54" y2="76" stroke="url(#cyanGrad)" stroke-width="2.5" stroke-linecap="round" />
+    <circle cx="37" cy="84" r="2" fill="#16B8D4" filter="url(#glow)" />
+  </g>
+
+  <!-- Text: RainCast -->
+  <text x="105" y="56" font-family="'Manrope', 'Inter', sans-serif" font-weight="800" font-size="34" fill="#F4F8FC" letter-spacing="-0.5">
+    Rain<tspan fill="#16B8D4">Cast</tspan>
+  </text>
+  
+  <!-- Text: AI Badge -->
+  <rect x="255" y="31" width="46" height="26" rx="6" fill="#16B8D4" fill-opacity="0.18" stroke="#16B8D4" stroke-width="1.5" />
+  <text x="265" y="50" font-family="'Manrope', sans-serif" font-weight="800" font-size="15" fill="#16B8D4">AI</text>
+
+  <!-- Subtitle Tagline -->
+  <text x="106" y="78" font-family="'Inter', sans-serif" font-weight="500" font-size="10.5" fill="#9DB1C5" letter-spacing="1.5">
+    CLIMATE INTELLIGENCE PLATFORM
+  </text>
+</svg>
+

@@ -1,0 +1,255 @@
+{% extends "base.html" %}
+
+{% block title %}RainCast AI | Climate Analytics Dashboard{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+    
+    <!-- Page Header -->
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+            <div class="text-xs font-bold uppercase tracking-widest text-cyan-400" data-i18n="dash_meta">Descriptive Meteorology</div>
+            <h1 class="text-3xl font-extrabold text-white" data-i18n="dash_title">Climate Analytics Dashboard</h1>
+            <p class="text-sm text-gray-400 mt-1" data-i18n="dash_subtitle">Explore 125 continuous years of authentic meteorological observations, seasonal distributions, and historical extremes (1901–2025).</p>
+        </div>
+        
+        <!-- Live Badge -->
+        <div class="flex items-center gap-2 self-start md:self-auto px-3.5 py-1.5 rounded-lg bg-navy-800 border border-navy-700 text-xs text-gray-300">
+            <i data-lucide="calendar" class="w-4 h-4 text-cyan-400"></i>
+            <span data-i18n="dash_baseline">Baseline Normal Period: <strong>1971 – 2020 LPA</strong></span>
+        </div>
+    </div>
+
+    <!-- Location Selector Bar -->
+    <div class="glass-card p-5">
+        <form id="filterForm" class="grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
+            <div>
+                <label class="block text-xs font-bold text-gray-300 uppercase tracking-wider mb-2" data-i18n="dash_state_label">Select State / Territory</label>
+                <select id="stateSelect" class="w-full bg-navy-900 border border-navy-700 rounded-lg px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-cyan-500">
+                    {% for st in states %}
+                    <option value="{{ st }}" {% if st == default_state %}selected{% endif %}>{{ st }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-gray-300 uppercase tracking-wider mb-2" data-i18n="dash_district_label">Select District / Subdivision</label>
+                <select id="districtSelect" class="w-full bg-navy-900 border border-navy-700 rounded-lg px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-cyan-500">
+                    {% for d in default_districts %}
+                    <option value="{{ d }}" {% if d == default_district %}selected{% endif %}>{{ d }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div>
+                <button type="submit" class="w-full px-5 py-2.5 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-navy-950 font-heading font-bold text-sm tracking-wide flex items-center justify-center gap-2 transition-colors">
+                    <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                    <span data-i18n="dash_btn_update">Update Analytics</span>
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- 4 Key Stat Badges -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        <div class="glass-card p-5">
+            <div class="text-xs font-bold text-gray-400 uppercase tracking-wider" data-i18n="stat_lpa_title">Normal Annual (LPA)</div>
+            <div id="statLpa" class="text-2xl sm:text-3xl font-extrabold text-white font-heading mt-2">-- mm</div>
+            <div class="text-[11px] text-gray-400 mt-1" data-i18n="stat_lpa_sub">1971–2020 Standard Benchmark</div>
+        </div>
+
+        <div class="glass-card p-5">
+            <div class="text-xs font-bold text-gray-400 uppercase tracking-wider" data-i18n="stat_latest_title">2025 Observed Rainfall</div>
+            <div id="statLatest" class="text-2xl sm:text-3xl font-extrabold text-white font-heading mt-2">-- mm</div>
+            <div class="text-[11px] text-gray-400 mt-1" data-i18n="stat_latest_sub">Latest Verified Historical Observation</div>
+        </div>
+
+        <div class="glass-card p-5">
+            <div class="text-xs font-bold text-gray-400 uppercase tracking-wider" data-i18n="stat_anomaly_title">2025 Anomaly Departure</div>
+            <div id="statAnomaly" class="text-2xl sm:text-3xl font-extrabold text-white font-heading mt-2">-- %</div>
+            <div id="statCategoryBadge" class="inline-block mt-1 px-2.5 py-0.5 rounded text-[11px] font-bold">--</div>
+        </div>
+
+        <div class="glass-card p-5">
+            <div class="text-xs font-bold text-gray-400 uppercase tracking-wider" data-i18n="stat_rainy_days_title">Annual Rainy Days</div>
+            <div id="statRainyDays" class="text-2xl sm:text-3xl font-extrabold text-white font-heading mt-2">-- Days</div>
+            <div class="text-[11px] text-gray-400 mt-1" data-i18n="stat_rainy_days_sub">Days with precipitation &ge; 2.5 mm</div>
+        </div>
+    </div>
+
+    <!-- Interactive Charts Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <!-- Chart 1: Historical Trend (2 Cols) -->
+        <div class="lg:col-span-2 glass-card p-6">
+            <div class="flex items-center justify-between mb-4">
+                <div>
+                    <h3 class="text-lg font-bold text-white font-heading" data-i18n="chart_trend_title">Historical Annual Rainfall Trend (1901–2025)</h3>
+                    <p class="text-xs text-gray-400" data-i18n="chart_trend_sub">125-year chronological timeline with 5-year moving average & LPA reference.</p>
+                </div>
+            </div>
+            <div id="trendChart" class="w-full h-80"></div>
+        </div>
+
+        <!-- Chart 2: Monthly Breakdown (1 Col) -->
+        <div class="glass-card p-6">
+            <div class="mb-4">
+                <h3 class="text-lg font-bold text-white font-heading" data-i18n="chart_monthly_title">Monthly Climatological Profile</h3>
+                <p class="text-xs text-gray-400" data-i18n="chart_monthly_sub">12-month normal seasonal distribution in mm.</p>
+            </div>
+            <div id="monthlyChart" class="w-full h-80"></div>
+        </div>
+    </div>
+
+    <!-- Chart 3: Anomaly Series Full Width -->
+    <div class="glass-card p-6">
+        <div class="mb-4">
+            <h3 class="text-lg font-bold text-white font-heading" data-i18n="chart_anomaly_title">Historical Climatological Anomalies (% Departure from Normal)</h3>
+            <p class="text-xs text-gray-400" data-i18n="chart_anomaly_sub">Cyan bars denote Excess monsoon years; Coral bars denote Deficient drought years.</p>
+        </div>
+        <div id="anomalyChart" class="w-full h-72"></div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    const stateSelect = document.getElementById('stateSelect');
+    const districtSelect = document.getElementById('districtSelect');
+    const filterForm = document.getElementById('filterForm');
+
+    // On state change, update districts
+    stateSelect.addEventListener('change', async () => {
+        const state = stateSelect.value;
+        const res = await fetch(`/api/districts/${encodeURIComponent(state)}`);
+        const districts = await res.json();
+        districtSelect.innerHTML = '';
+        districts.forEach(d => {
+            const opt = document.createElement('option');
+            opt.value = d;
+            opt.textContent = d;
+            districtSelect.appendChild(opt);
+        });
+        loadDashboardData();
+    });
+
+    filterForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        loadDashboardData();
+    });
+
+    // Listen to global language change
+    window.addEventListener('languageChanged', () => {
+        loadDashboardData();
+    });
+
+    async function loadDashboardData() {
+        const state = stateSelect.value;
+        const district = districtSelect.value;
+        if (!state || !district) return;
+
+        const res = await fetch(`/api/dashboard-data?state=${encodeURIComponent(state)}&district=${encodeURIComponent(district)}`);
+        const data = await res.json();
+
+        // Update stats
+        document.getElementById('statLpa').textContent = `${data.lpa_normal} mm`;
+        document.getElementById('statLatest').textContent = `${data.latest_annual} mm`;
+        document.getElementById('statAnomaly').textContent = `${data.latest_anomaly_pct > 0 ? '+' : ''}${data.latest_anomaly_pct}%`;
+        document.getElementById('statRainyDays').textContent = `${data.rainy_days} Days`;
+
+        const badge = document.getElementById('statCategoryBadge');
+        badge.textContent = data.latest_category;
+        if (data.latest_category === 'Normal') {
+            badge.className = 'inline-block mt-1 px-2.5 py-0.5 rounded text-[11px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/40';
+        } else if (data.latest_category.includes('Excess')) {
+            badge.className = 'inline-block mt-1 px-2.5 py-0.5 rounded text-[11px] font-bold bg-cyan-500/20 text-cyan-400 border border-cyan-500/40';
+        } else {
+            badge.className = 'inline-block mt-1 px-2.5 py-0.5 rounded text-[11px] font-bold bg-rose-500/20 text-rose-400 border border-rose-500/40';
+        }
+
+        // Translated chart labels
+        const tAnnual = window.i18n ? window.i18n.t('trace_annual') : 'Annual Rainfall (mm)';
+        const tMA5 = window.i18n ? window.i18n.t('trace_ma5') : '5-Yr Moving Avg';
+        const tLpa = window.i18n ? window.i18n.t('trace_lpa') : 'LPA Normal';
+        const tAxisRainfall = window.i18n ? window.i18n.t('axis_rainfall') : 'Rainfall (mm)';
+        const tAxisDeparture = window.i18n ? window.i18n.t('axis_departure') : 'Departure (%)';
+
+        // Plot 1: Historical Trend
+        const traceAnnual = {
+            x: data.years,
+            y: data.annual_series,
+            type: 'scatter',
+            mode: 'lines',
+            name: tAnnual,
+            line: { color: '#16B8D4', width: 1.5 }
+        };
+        const traceMA5 = {
+            x: data.years,
+            y: data.ma5_series,
+            type: 'scatter',
+            mode: 'lines',
+            name: tMA5,
+            line: { color: '#F4B942', width: 2.5 }
+        };
+        const traceLpa = {
+            x: [data.years[0], data.years[data.years.length - 1]],
+            y: [data.lpa_normal, data.lpa_normal],
+            type: 'scatter',
+            mode: 'lines',
+            name: tLpa,
+            line: { color: '#27C58A', dash: 'dash', width: 2 }
+        };
+        const layoutTrend = {
+            margin: { t: 20, r: 20, l: 45, b: 40 },
+            paper_bgcolor: 'transparent',
+            plot_bgcolor: 'transparent',
+            font: { color: '#9DB1C5', family: 'Inter, Mukta, Noto Sans Gurmukhi, sans-serif' },
+            xaxis: { gridcolor: '#1A3A5A', linecolor: '#1A3A5A' },
+            yaxis: { gridcolor: '#1A3A5A', linecolor: '#1A3A5A', title: tAxisRainfall },
+            legend: { orientation: 'h', y: -0.2 }
+        };
+        Plotly.newPlot('trendChart', [traceAnnual, traceMA5, traceLpa], layoutTrend, { responsive: true, displayModeBar: false });
+
+        // Plot 2: Monthly Distribution
+        const traceMonthly = {
+            x: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+            y: data.monthly_means,
+            type: 'bar',
+            marker: {
+                color: ['#1A3A5A', '#1A3A5A', '#234C75', '#234C75', '#16B8D4', '#16B8D4', '#16B8D4', '#16B8D4', '#16B8D4', '#4F9DDA', '#234C75', '#1A3A5A']
+            }
+        };
+        const layoutMonthly = {
+            margin: { t: 20, r: 20, l: 45, b: 40 },
+            paper_bgcolor: 'transparent',
+            plot_bgcolor: 'transparent',
+            font: { color: '#9DB1C5', family: 'Inter, Mukta, Noto Sans Gurmukhi, sans-serif' },
+            xaxis: { gridcolor: '#1A3A5A' },
+            yaxis: { gridcolor: '#1A3A5A', title: 'mm' }
+        };
+        Plotly.newPlot('monthlyChart', [traceMonthly], layoutMonthly, { responsive: true, displayModeBar: false });
+
+        // Plot 3: Anomalies
+        const barColors = data.anomalies_pct.map(v => v >= 0 ? '#16B8D4' : '#E66A72');
+        const traceAnomaly = {
+            x: data.years,
+            y: data.anomalies_pct,
+            type: 'bar',
+            marker: { color: barColors }
+        };
+        const layoutAnomaly = {
+            margin: { t: 20, r: 20, l: 45, b: 40 },
+            paper_bgcolor: 'transparent',
+            plot_bgcolor: 'transparent',
+            font: { color: '#9DB1C5', family: 'Inter, Mukta, Noto Sans Gurmukhi, sans-serif' },
+            xaxis: { gridcolor: '#1A3A5A' },
+            yaxis: { gridcolor: '#1A3A5A', title: tAxisDeparture }
+        };
+        Plotly.newPlot('anomalyChart', [traceAnomaly], layoutAnomaly, { responsive: true, displayModeBar: false });
+    }
+
+    // Load initial data
+    loadDashboardData();
+</script>
+{% endblock %}

@@ -1,0 +1,400 @@
+{% extends "base.html" %}
+
+{% block title %}RainCast AI | Machine Learning Rainfall Prediction Engine{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+    
+    <!-- Page Header -->
+    <div>
+        <div class="text-xs font-bold uppercase tracking-widest text-cyan-400" data-i18n="pred_meta">Machine Learning Inference</div>
+        <h1 class="text-3xl font-extrabold text-white" data-i18n="pred_title">Annual Rainfall Prediction Engine</h1>
+        <p class="text-sm text-gray-400 mt-1" data-i18n="pred_subtitle">Deploy validated regressors to forecast future rainfall volumes from <strong>2027 through 2035</strong> with expanding uncertainty intervals.</p>
+    </div>
+
+    <!-- Parameter Configuration Card -->
+    <div class="glass-card p-6">
+        <form id="predictForm" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 items-end">
+            <div>
+                <label class="block text-xs font-bold text-gray-300 uppercase tracking-wider mb-2" data-i18n="pred_state_label">State / Territory</label>
+                <select id="stateSelect" class="w-full bg-navy-900 border border-navy-700 rounded-lg px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-cyan-500">
+                    {% for st in states %}
+                    <option value="{{ st }}" {% if st == default_state %}selected{% endif %}>{{ st }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-gray-300 uppercase tracking-wider mb-2" data-i18n="pred_district_label">District / Subdivision</label>
+                <select id="districtSelect" class="w-full bg-navy-900 border border-navy-700 rounded-lg px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-cyan-500">
+                    {% for d in default_districts %}
+                    <option value="{{ d }}" {% if d == default_district %}selected{% endif %}>{{ d }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-gray-300 uppercase tracking-wider mb-2" data-i18n="pred_year_label">Forecast Horizon Year</label>
+                <select id="yearSelect" class="w-full bg-navy-900 border border-navy-700 rounded-lg px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-cyan-500">
+                    <option value="2027" selected>2027 (1-Year Ahead)</option>
+                    <option value="2028">2028 (2-Years Ahead)</option>
+                    <option value="2029">2029 (3-Years Ahead)</option>
+                    <option value="2030">2030 (4-Years Ahead)</option>
+                    <option value="2031">2031 (5-Years Ahead)</option>
+                    <option value="2032">2032 (6-Years Ahead)</option>
+                    <option value="2035">2035 (Long-Horizon)</option>
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-gray-300 uppercase tracking-wider mb-2" data-i18n="pred_model_label">Model Architecture</label>
+                <select id="modelSelect" class="w-full bg-navy-900 border border-navy-700 rounded-lg px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-cyan-500">
+                    {% for m in models %}
+                    <option value="{{ m }}" {% if 'HistGradient' in m or 'Random Forest' in m %}selected{% endif %}>{{ m }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div>
+                <button type="submit" id="runBtn" class="w-full px-5 py-2.5 rounded-lg bg-gradient-to-r from-cyan-500 to-cyan-600 hover:from-cyan-400 hover:to-cyan-500 text-navy-950 font-heading font-extrabold text-sm uppercase tracking-wider shadow-lg shadow-cyan-500/20 flex items-center justify-center gap-2 transition-all">
+                    <i data-lucide="sparkles" class="w-4 h-4"></i>
+                    <span id="btnText" data-i18n="pred_btn_run">Run Forecast</span>
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Prediction Results Section -->
+    <div id="resultsContainer" class="space-y-6">
+        
+        <!-- Primary KPI & Gauge Row -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            <!-- Projected Rainfall Card -->
+            <div class="glass-card p-6 flex flex-col justify-between">
+                <div>
+                    <div class="flex items-center justify-between text-gray-400 mb-2">
+                        <span class="text-xs font-bold uppercase tracking-wider text-cyan-400" data-i18n="pred_target_label">ML Forecast Target</span>
+                        <span id="resHorizonBadge" class="px-2.5 py-0.5 rounded text-[11px] font-bold bg-navy-800 text-gray-300 border border-navy-700">Year 2027</span>
+                    </div>
+                    <div class="text-xs text-gray-400" id="resLocationText">Ludhiana, Punjab</div>
+                    <div id="resRainfallValue" class="text-4xl sm:text-5xl font-black text-white font-heading my-3">-- mm</div>
+                    <div class="flex items-center gap-2 text-xs">
+                        <span id="resAnomalyPct" class="font-bold text-emerald-400">--% departure</span>
+                        <span class="text-gray-500">•</span>
+                        <span class="text-gray-400">Normal LPA: <span id="resLpaValue" class="text-gray-200">-- mm</span></span>
+                    </div>
+                </div>
+
+                <div class="mt-4 pt-4 border-t border-navy-800 flex items-center justify-between">
+                    <span class="text-xs text-gray-400">IMD Classification:</span>
+                    <span id="resClassificationBadge" class="px-3 py-1 rounded-full text-xs font-bold">--</span>
+                </div>
+            </div>
+
+            <!-- Statistical Confidence Interval (90% Band) -->
+            <div class="glass-card p-6 flex flex-col justify-between">
+                <div>
+                    <div class="flex items-center justify-between text-gray-400 mb-2">
+                        <span class="text-xs font-bold uppercase tracking-wider text-emerald-400" data-i18n="pred_bounds_title">Uncertainty Bounds</span>
+                        <i data-lucide="shield-check" class="w-4 h-4 text-emerald-400"></i>
+                    </div>
+                    <div class="text-xs text-gray-400" data-i18n="pred_bounds_sub">90% Statistical Confidence Interval (P05 – P95)</div>
+                    
+                    <div class="grid grid-cols-2 gap-3 my-4">
+                        <div class="p-3 rounded-lg bg-navy-900 border border-navy-700">
+                            <span class="text-[10px] uppercase font-bold text-gray-400" data-i18n="pred_lower_label">Lower Bound (P05)</span>
+                            <div id="resCiLower" class="text-xl font-bold text-gray-200 font-heading mt-1">-- mm</div>
+                        </div>
+                        <div class="p-3 rounded-lg bg-navy-900 border border-navy-700">
+                            <span class="text-[10px] uppercase font-bold text-gray-400" data-i18n="pred_upper_label">Upper Bound (P95)</span>
+                            <div id="resCiUpper" class="text-xl font-bold text-gray-200 font-heading mt-1">-- mm</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="text-[11px] text-gray-400 pt-2 border-t border-navy-800 flex items-center gap-1.5">
+                    <i data-lucide="info" class="w-3.5 h-3.5 text-cyan-400"></i>
+                    <span><span data-i18n="pred_margin_label">Model Uncertainty Margin:</span> &plusmn;<span id="resUncertaintyStd">--</span> mm</span>
+                </div>
+            </div>
+
+            <!-- Interactive Anomaly Speedometer Gauge -->
+            <div class="glass-card p-6 flex flex-col justify-between">
+                <div>
+                    <div class="flex items-center justify-between text-gray-400 mb-2">
+                        <span class="text-xs font-bold uppercase tracking-wider text-amber-400" data-i18n="pred_gauge_title">IMD Anomaly Gauge</span>
+                        <i data-lucide="gauge" class="w-4 h-4 text-amber-400"></i>
+                    </div>
+                    <div class="text-xs text-gray-400" data-i18n="pred_gauge_sub">Relative departure from standard normal</div>
+                </div>
+                <div id="gaugeChart" class="w-full h-44 flex items-center justify-center"></div>
+                <div class="text-[11px] text-center text-gray-400" data-i18n="pred_gauge_legend">
+                    Deficient (&lt;-19%) &bull; Normal (&plusmn;19%) &bull; Excess (&gt;+19%)
+                </div>
+            </div>
+        </div>
+
+        <!-- Multi-Horizon Forecast Chart -->
+        <div class="glass-card p-6">
+            <div class="flex items-center justify-between mb-4">
+                <div>
+                    <h3 class="text-lg font-bold text-white font-heading" data-i18n="pred_chart_title">Historical Trajectory & Multi-Horizon Forecast</h3>
+                    <p class="text-xs text-gray-400" data-i18n="pred_chart_sub">Recent observed history (2015–2026) connecting to forecast horizon with 90% expanding confidence cone.</p>
+                </div>
+            </div>
+            <div id="forecastPlot" class="w-full h-80"></div>
+        </div>
+
+        <!-- Agricultural & Crop Suitability Advisory + GenAI -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            
+            <!-- Agricultural Advisory Card -->
+            <div class="glass-card p-6 space-y-4">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-base font-bold text-white font-heading flex items-center gap-2">
+                        <i data-lucide="sprout" class="w-5 h-5 text-emerald-400"></i>
+                        <span data-i18n="pred_agri_title">Agricultural & Crop Suitability Advisory</span>
+                    </h3>
+                    <span class="text-[11px] text-gray-400 font-medium" data-i18n="pred_agri_sub">Agro-Climatic Intelligence</span>
+                </div>
+
+                <div class="space-y-3 pt-2">
+                    <div class="p-3.5 rounded-lg bg-navy-900 border border-navy-700 flex items-center justify-between">
+                        <div>
+                            <div class="text-sm font-bold text-white" data-i18n="pred_kharif_title">Kharif Season (Monsoon)</div>
+                            <div class="text-xs text-gray-400" data-i18n="pred_kharif_sub">Paddy, Maize, Soybean, Cotton</div>
+                        </div>
+                        <span id="agriKharifBadge" class="px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/40" data-i18n="suit_highly_favorable">Highly Favorable</span>
+                    </div>
+
+                    <div class="p-3.5 rounded-lg bg-navy-900 border border-navy-700 flex items-center justify-between">
+                        <div>
+                            <div class="text-sm font-bold text-white" data-i18n="pred_rabi_title">Rabi Season (Winter)</div>
+                            <div class="text-xs text-gray-400" data-i18n="pred_rabi_sub">Wheat, Mustard, Barley, Gram</div>
+                        </div>
+                        <span id="agriRabiBadge" class="px-3 py-1 rounded-full text-xs font-bold bg-cyan-500/20 text-cyan-400 border border-cyan-500/40" data-i18n="suit_adequate">Adequate Moisture</span>
+                    </div>
+
+                    <div class="p-3.5 rounded-lg bg-navy-900 border border-navy-700 flex items-center justify-between">
+                        <div>
+                            <div class="text-sm font-bold text-white" data-i18n="pred_water_title">Groundwater Recharge Index</div>
+                            <div class="text-xs text-gray-400" data-i18n="pred_water_sub">Aquifer replenishment potential</div>
+                        </div>
+                        <span id="agriWaterBadge" class="px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/40" data-i18n="suit_high_potential">High Potential</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Gemini AI Explanation Card -->
+            <div class="glass-card p-6 space-y-4">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-base font-bold text-white font-heading flex items-center gap-2">
+                        <i data-lucide="bot" class="w-5 h-5 text-purple-400"></i>
+                        <span data-i18n="pred_ai_title">AI Meteorological Interpretation</span>
+                    </h3>
+                    <button id="copyAiBtn" class="text-xs text-gray-400 hover:text-white flex items-center gap-1">
+                        <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+                        <span data-i18n="pred_copy_btn">Copy</span>
+                    </button>
+                </div>
+
+                <div id="aiExplanationText" class="p-4 rounded-lg bg-navy-900 border border-navy-700 text-xs sm:text-sm text-gray-300 leading-relaxed space-y-2 whitespace-pre-line min-h-[140px]" data-i18n="pred_loading_ai">
+                    Loading climate interpretation...
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    const stateSelect = document.getElementById('stateSelect');
+    const districtSelect = document.getElementById('districtSelect');
+    const yearSelect = document.getElementById('yearSelect');
+    const modelSelect = document.getElementById('modelSelect');
+    const predictForm = document.getElementById('predictForm');
+    const runBtn = document.getElementById('runBtn');
+    const btnText = document.getElementById('btnText');
+
+    stateSelect.addEventListener('change', async () => {
+        const state = stateSelect.value;
+        const res = await fetch(`/api/districts/${encodeURIComponent(state)}`);
+        const districts = await res.json();
+        districtSelect.innerHTML = '';
+        districts.forEach(d => {
+            const opt = document.createElement('option');
+            opt.value = d;
+            opt.textContent = d;
+            districtSelect.appendChild(opt);
+        });
+        executePrediction();
+    });
+
+    predictForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        executePrediction();
+    });
+
+    // Re-run on language change to regenerate AI explanation in selected language
+    window.addEventListener('languageChanged', () => {
+        executePrediction();
+    });
+
+    function getCurrentLanguageName() {
+        const lang = window.i18n ? window.i18n.currentLang : 'en';
+        if (lang === 'hi') return 'Hindi';
+        if (lang === 'pa') return 'Punjabi';
+        return 'English';
+    }
+
+    async function executePrediction() {
+        const state = stateSelect.value;
+        const district = districtSelect.value;
+        const forecast_year = parseInt(yearSelect.value);
+        const model_name = modelSelect.value;
+        const language = getCurrentLanguageName();
+
+        if (window.i18n) {
+            btnText.textContent = window.i18n.t('pred_btn_running');
+        } else {
+            btnText.textContent = 'Forecasting...';
+        }
+        runBtn.disabled = true;
+
+        try {
+            const res = await fetch('/api/predict', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ state, district, forecast_year, model_name, language })
+            });
+            const data = await res.json();
+
+            // Populate cards
+            document.getElementById('resHorizonBadge').textContent = `Year ${data.forecast_year}`;
+            document.getElementById('resLocationText').textContent = `${data.district}, ${data.state}`;
+            document.getElementById('resRainfallValue').textContent = `${data.predicted_rainfall_mm} mm`;
+            document.getElementById('resAnomalyPct').textContent = `${data.predicted_anomaly_pct > 0 ? '+' : ''}${data.predicted_anomaly_pct}%`;
+            document.getElementById('resLpaValue').textContent = `${data.lpa_normal} mm`;
+            document.getElementById('resCiLower').textContent = `${data.confidence_lower} mm`;
+            document.getElementById('resCiUpper').textContent = `${data.confidence_upper} mm`;
+            document.getElementById('resUncertaintyStd').textContent = data.uncertainty_std_error;
+
+            const classBadge = document.getElementById('resClassificationBadge');
+            classBadge.textContent = data.classification;
+            if (data.classification === 'Normal') {
+                classBadge.className = 'px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/40';
+            } else if (data.classification.includes('Excess')) {
+                classBadge.className = 'px-3 py-1 rounded-full text-xs font-bold bg-cyan-500/20 text-cyan-400 border border-cyan-500/40';
+            } else {
+                classBadge.className = 'px-3 py-1 rounded-full text-xs font-bold bg-rose-500/20 text-rose-400 border border-rose-500/40';
+            }
+
+            document.getElementById('aiExplanationText').textContent = data.ai_explanation;
+
+            // Plot Gauge Chart
+            const gaugeData = [{
+                type: "indicator",
+                mode: "gauge+number",
+                value: data.predicted_anomaly_pct,
+                number: { suffix: "%", font: { color: "#F4F8FC", size: 22 } },
+                gauge: {
+                    axis: { range: [-60, 60], tickwidth: 1, tickcolor: "#9DB1C5" },
+                    bar: { color: data.predicted_anomaly_pct >= 0 ? "#16B8D4" : "#E66A72", thickness: 0.3 },
+                    bgcolor: "transparent",
+                    borderwidth: 0,
+                    steps: [
+                        { range: [-60, -19.5], color: "rgba(230, 106, 114, 0.25)" },
+                        { range: [-19.5, 19.5], color: "rgba(39, 197, 138, 0.25)" },
+                        { range: [19.5, 60], color: "rgba(22, 184, 212, 0.25)" }
+                    ]
+                }
+            }];
+            Plotly.newPlot('gaugeChart', gaugeData, {
+                margin: { t: 15, b: 15, l: 30, r: 30 },
+                paper_bgcolor: 'transparent',
+                plot_bgcolor: 'transparent',
+                font: { color: '#9DB1C5', family: 'Inter, Mukta, Noto Sans Gurmukhi, sans-serif' }
+            }, { responsive: true, displayModeBar: false });
+
+            // Plot Multi-Horizon Forecast Chart
+            const histTrace = {
+                x: data.history_years,
+                y: data.history_rainfalls,
+                type: 'scatter',
+                mode: 'lines+markers',
+                name: 'Observed History',
+                line: { color: '#16B8D4', width: 2 }
+            };
+            const lpaTrace = {
+                x: [data.history_years[0], data.forecast_year],
+                y: [data.lpa_normal, data.lpa_normal],
+                type: 'scatter',
+                mode: 'lines',
+                name: 'LPA Normal',
+                line: { color: '#27C58A', dash: 'dash', width: 1.5 }
+            };
+            const predTrace = {
+                x: [2026, data.forecast_year],
+                y: [data.history_rainfalls[data.history_rainfalls.length - 1], data.predicted_rainfall_mm],
+                type: 'scatter',
+                mode: 'lines+markers',
+                name: 'Forecast Horizon',
+                line: { color: '#F4B942', width: 2.5, dash: 'dot' },
+                marker: { size: [6, 10], color: '#F4B942' }
+            };
+            const ciUpperTrace = {
+                x: [2026, data.forecast_year],
+                y: [data.history_rainfalls[data.history_rainfalls.length - 1], data.confidence_upper],
+                type: 'scatter',
+                mode: 'lines',
+                name: '90% Upper Bound',
+                line: { width: 0 },
+                showlegend: false
+            };
+            const ciLowerTrace = {
+                x: [2026, data.forecast_year],
+                y: [data.history_rainfalls[data.history_rainfalls.length - 1], data.confidence_lower],
+                type: 'scatter',
+                mode: 'lines',
+                name: '90% Confidence Band',
+                fill: 'tonexty',
+                fillcolor: 'rgba(244, 185, 66, 0.15)',
+                line: { width: 0 }
+            };
+
+            const forecastLayout = {
+                margin: { t: 20, r: 20, l: 45, b: 40 },
+                paper_bgcolor: 'transparent',
+                plot_bgcolor: 'transparent',
+                font: { color: '#9DB1C5', family: 'Inter, Mukta, Noto Sans Gurmukhi, sans-serif' },
+                xaxis: { gridcolor: '#1A3A5A' },
+                yaxis: { gridcolor: '#1A3A5A', title: 'Rainfall (mm)' },
+                legend: { orientation: 'h', y: -0.2 }
+            };
+            Plotly.newPlot('forecastPlot', [histTrace, lpaTrace, ciUpperTrace, ciLowerTrace, predTrace], forecastLayout, { responsive: true, displayModeBar: false });
+
+        } catch (err) {
+            console.error('Prediction failed:', err);
+        } finally {
+            if (window.i18n) {
+                btnText.textContent = window.i18n.t('pred_btn_run');
+            } else {
+                btnText.textContent = 'Run Forecast';
+            }
+            runBtn.disabled = false;
+        }
+    }
+
+    document.getElementById('copyAiBtn').addEventListener('click', () => {
+        const text = document.getElementById('aiExplanationText').textContent;
+        navigator.clipboard.writeText(text);
+        const msg = window.i18n ? window.i18n.t('pred_copied') : 'Copied AI Meteorological Explanation to clipboard!';
+        alert(msg);
+    });
+
+    executePrediction();
+</script>
+{% endblock %}

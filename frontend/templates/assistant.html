@@ -1,0 +1,204 @@
+{% extends "base.html" %}
+
+{% block title %}RainCast AI | Climate Intelligence AI Assistant{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+    
+    <!-- Page Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <div class="text-xs font-bold uppercase tracking-widest text-purple-400" data-i18n="asst_meta">Conversational Intelligence</div>
+            <h1 class="text-3xl font-extrabold text-white" data-i18n="asst_title">Climate AI Assistant</h1>
+            <p class="text-sm text-gray-400 mt-1" data-i18n="asst_subtitle">Chat with our climate reasoning model grounded strictly in 125 continuous years of authentic meteorological observations (1901–2025) and model predictions.</p>
+        </div>
+
+        <!-- Language Selector -->
+        <div class="flex items-center gap-2 bg-navy-900 border border-navy-700 px-3 py-1.5 rounded-lg text-xs">
+            <span class="text-gray-400" data-i18n="asst_lang_label">Response Language:</span>
+            <select id="chatLanguage" class="bg-transparent text-white font-semibold focus:outline-none cursor-pointer">
+                <option value="English">English</option>
+                <option value="Hindi">हिंदी (Hindi)</option>
+                <option value="Punjabi">ਪੰਜਾਬੀ (Punjabi)</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- Suggested Question Chips -->
+    <div class="space-y-2">
+        <span class="text-xs text-gray-400 font-medium" data-i18n="asst_prompts_label">Quick Prompts:</span>
+        <div class="flex flex-wrap gap-2" id="promptChipsContainer">
+            <button class="prompt-chip px-3 py-1.5 rounded-full text-xs bg-navy-900 hover:bg-navy-800 text-cyan-400 border border-navy-700 transition-colors" data-i18n="asst_chip_1">
+                🌦️ What is the 2027 rainfall forecast for Punjab?
+            </button>
+            <button class="prompt-chip px-3 py-1.5 rounded-full text-xs bg-navy-900 hover:bg-navy-800 text-cyan-400 border border-navy-700 transition-colors" data-i18n="asst_chip_2">
+                💧 Which subdivisions face deficient monsoon risk in 2027?
+            </button>
+            <button class="prompt-chip px-3 py-1.5 rounded-full text-xs bg-navy-900 hover:bg-navy-800 text-cyan-400 border border-navy-700 transition-colors" data-i18n="asst_chip_3">
+                📈 How does Coastal Karnataka compare to Vidarbha?
+            </button>
+            <button class="prompt-chip px-3 py-1.5 rounded-full text-xs bg-navy-900 hover:bg-navy-800 text-cyan-400 border border-navy-700 transition-colors" data-i18n="asst_chip_4">
+                🌾 Recommended crops for normal monsoon conditions
+            </button>
+        </div>
+    </div>
+
+    <!-- Chat Card Container -->
+    <div class="glass-card flex flex-col h-[600px] overflow-hidden">
+        
+        <!-- Messages Feed -->
+        <div id="messagesContainer" class="flex-grow p-6 overflow-y-auto space-y-4">
+            
+            <!-- Default Welcome Message -->
+            <div class="flex items-start gap-3">
+                <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-purple-700 flex items-center justify-center flex-shrink-0 text-white font-bold text-xs shadow-md">
+                    AI
+                </div>
+                <div class="bg-navy-900 border border-navy-700 rounded-2xl rounded-tl-none p-4 max-w-2xl text-sm text-gray-200 leading-relaxed shadow-sm">
+                    <p class="font-bold text-white mb-1" data-i18n="asst_welcome_title">Namaste! I am the RainCast Climate Intelligence Assistant.</p>
+                    <p data-i18n="asst_welcome_text">I have direct access to 125 continuous years of authentic IMD meteorological subdivision records (1901–2025) and machine learning forecasts for 2027–2035. How can I assist your climate research or agricultural planning today?</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Input Bar -->
+        <div class="p-4 border-t border-navy-700 bg-navy-950/70">
+            <form id="chatForm" class="flex items-center gap-3">
+                <input type="text" id="chatInput" placeholder="Ask about rainfall predictions, drought risks, crop suitability, or regional trends..." data-i18n-placeholder="asst_placeholder" class="flex-grow bg-navy-900 border border-navy-700 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-cyan-500 placeholder-gray-500" required>
+                <button type="submit" id="sendBtn" class="px-5 py-3 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-navy-950 font-heading font-extrabold text-sm uppercase tracking-wider flex items-center gap-2 transition-all shadow-md shadow-cyan-500/20">
+                    <span data-i18n="asst_send_btn">Send</span>
+                    <i data-lucide="send" class="w-4 h-4"></i>
+                </button>
+            </form>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    const chatForm = document.getElementById('chatForm');
+    const chatInput = document.getElementById('chatInput');
+    const chatLanguage = document.getElementById('chatLanguage');
+    const messagesContainer = document.getElementById('messagesContainer');
+    const sendBtn = document.getElementById('sendBtn');
+    let chatHistory = [];
+
+    // Sync dropdown with current language
+    function syncChatLanguage() {
+        const lang = window.i18n ? window.i18n.currentLang : 'en';
+        if (lang === 'hi') chatLanguage.value = 'Hindi';
+        else if (lang === 'pa') chatLanguage.value = 'Punjabi';
+        else chatLanguage.value = 'English';
+    }
+    syncChatLanguage();
+
+    chatLanguage.addEventListener('change', () => {
+        const langCode = chatLanguage.value === 'Hindi' ? 'hi' : (chatLanguage.value === 'Punjabi' ? 'pa' : 'en');
+        if (window.i18n) window.i18n.setLanguage(langCode);
+    });
+
+    window.addEventListener('languageChanged', () => {
+        syncChatLanguage();
+    });
+
+    // Prompt chips click
+    document.querySelectorAll('.prompt-chip').forEach(btn => {
+        btn.addEventListener('click', () => {
+            chatInput.value = btn.textContent.trim().replace(/^🌦️\s*|^💧\s*|^📈\s*|^🌾\s*/, '');
+            chatForm.dispatchEvent(new Event('submit'));
+        });
+    });
+
+    chatForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const msg = chatInput.value.trim();
+        if (!msg) return;
+
+        // Append User Message
+        appendMessage('user', msg);
+        chatInput.value = '';
+        sendBtn.disabled = true;
+
+        // Append Loading Message
+        const loadingId = 'loading-' + Date.now();
+        appendLoading(loadingId);
+
+        try {
+            const res = await fetch('/api/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    message: msg,
+                    language: chatLanguage.value,
+                    history: chatHistory
+                })
+            });
+            const data = await res.json();
+            
+            // Remove loading
+            document.getElementById(loadingId)?.remove();
+
+            // Append AI response
+            appendMessage('ai', data.response);
+            chatHistory.push({ role: 'user', content: msg });
+            chatHistory.push({ role: 'assistant', content: data.response });
+
+        } catch (err) {
+            document.getElementById(loadingId)?.remove();
+            appendMessage('ai', 'Error contacting climate reasoning model. Please try again.');
+        } finally {
+            sendBtn.disabled = false;
+        }
+    });
+
+    function appendMessage(role, text) {
+        const div = document.createElement('div');
+        div.className = role === 'user' ? 'flex items-start justify-end gap-3' : 'flex items-start gap-3';
+
+        const userLabel = window.i18n ? window.i18n.t('asst_you') : 'You';
+        const aiLabel = window.i18n ? window.i18n.t('asst_ai') : 'AI';
+
+        if (role === 'user') {
+            div.innerHTML = `
+                <div class="bg-cyan-500 text-navy-950 font-medium rounded-2xl rounded-tr-none p-3.5 max-w-xl text-sm leading-relaxed shadow-sm">
+                    ${text}
+                </div>
+                <div class="w-8 h-8 rounded-lg bg-navy-800 border border-navy-700 flex items-center justify-center flex-shrink-0 text-cyan-400 font-bold text-xs">
+                    ${userLabel}
+                </div>
+            `;
+        } else {
+            div.innerHTML = `
+                <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-purple-700 flex items-center justify-center flex-shrink-0 text-white font-bold text-xs shadow-md">
+                    ${aiLabel}
+                </div>
+                <div class="bg-navy-900 border border-navy-700 rounded-2xl rounded-tl-none p-4 max-w-2xl text-sm text-gray-200 leading-relaxed shadow-sm whitespace-pre-line">
+                    ${text}
+                </div>
+            `;
+        }
+        messagesContainer.appendChild(div);
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+
+    function appendLoading(id) {
+        const div = document.createElement('div');
+        div.id = id;
+        div.className = 'flex items-start gap-3';
+        const synthText = window.i18n ? window.i18n.t('asst_synthesizing') : 'Synthesizing meteorological intelligence...';
+        div.innerHTML = `
+            <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-purple-700 flex items-center justify-center flex-shrink-0 text-white font-bold text-xs">
+                AI
+            </div>
+            <div class="bg-navy-900 border border-navy-700 rounded-2xl rounded-tl-none p-4 text-xs text-gray-400 flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full bg-cyan-400 pulse-dot"></span>
+                <span>${synthText}</span>
+            </div>
+        `;
+        messagesContainer.appendChild(div);
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+</script>
+{% endblock %}

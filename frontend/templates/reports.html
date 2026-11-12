@@ -1,0 +1,206 @@
+{% extends "base.html" %}
+
+{% block title %}RainCast AI | Automated Climate Reports & Data Export{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+    
+    <!-- Page Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <div class="text-xs font-bold uppercase tracking-widest text-emerald-400" data-i18n="rep_meta">Automated Documentation</div>
+            <h1 class="text-3xl font-extrabold text-white" data-i18n="rep_title">Executive Climate Reports & Data Export</h1>
+            <p class="text-sm text-gray-400 mt-1" data-i18n="rep_subtitle">Generate IMD-compliant PDF executive summaries and export full verified research datasets.</p>
+        </div>
+
+        <div class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-navy-800 border border-navy-700 text-xs text-gray-300">
+            <i data-lucide="file-check" class="w-4 h-4 text-emerald-400"></i>
+            <span data-i18n="rep_badge">ReportLab & Pandas Generation Engine</span>
+        </div>
+    </div>
+
+    <!-- Export Actions Grid (2 Cards) -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        
+        <!-- PDF Report Generation Card -->
+        <div class="glass-card p-6 flex flex-col justify-between space-y-5">
+            <div>
+                <div class="flex items-center gap-3 mb-2">
+                    <div class="w-10 h-10 rounded-xl bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center text-cyan-400">
+                        <i data-lucide="file-text" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-bold text-white font-heading" data-i18n="rep_pdf_title">Generate Executive Climate PDF</h3>
+                        <p class="text-xs text-gray-400" data-i18n="rep_pdf_sub">Official memorandum containing ML projections, uncertainty bands, and AI advisory.</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3 mt-4 text-xs">
+                    <div>
+                        <label class="block text-gray-400 font-bold mb-1" data-i18n="rep_label_state">State / UT</label>
+                        <select id="pdfStateSelect" class="w-full bg-navy-900 border border-navy-700 rounded-lg p-2 text-white">
+                            {% for st in states %}
+                            <option value="{{ st }}" {% if st == default_state %}selected{% endif %}>{{ st }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-gray-400 font-bold mb-1" data-i18n="rep_label_district">District / Sub-Div</label>
+                        <select id="pdfDistrictSelect" class="w-full bg-navy-900 border border-navy-700 rounded-lg p-2 text-white">
+                            {% for d in default_districts %}
+                            <option value="{{ d }}" {% if d == default_district %}selected{% endif %}>{{ d }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-gray-400 font-bold mb-1" data-i18n="rep_label_year">Horizon Year</label>
+                        <select id="pdfYearSelect" class="w-full bg-navy-900 border border-navy-700 rounded-lg p-2 text-white">
+                            <option value="2027" selected>2027</option>
+                            <option value="2028">2028</option>
+                            <option value="2030">2030</option>
+                            <option value="2035">2035</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-gray-400 font-bold mb-1" data-i18n="rep_label_model">Model</label>
+                        <select id="pdfModelSelect" class="w-full bg-navy-900 border border-navy-700 rounded-lg p-2 text-white">
+                            {% for m in models %}
+                            <option value="{{ m }}">{{ m }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <button id="downloadPdfBtn" class="w-full py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-cyan-600 hover:from-cyan-400 hover:to-cyan-500 text-navy-950 font-heading font-extrabold text-sm uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-cyan-500/20 transition-all">
+                <i data-lucide="download" class="w-4 h-4"></i>
+                <span data-i18n="rep_pdf_btn">Download Executive PDF</span>
+            </button>
+        </div>
+
+        <!-- Raw Dataset Export Card -->
+        <div class="glass-card p-6 flex flex-col justify-between space-y-5">
+            <div>
+                <div class="flex items-center gap-3 mb-2">
+                    <div class="w-10 h-10 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+                        <i data-lucide="table" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-bold text-white font-heading" data-i18n="rep_csv_title">Export Cleaned Research Dataset</h3>
+                        <p class="text-xs text-gray-400" data-i18n="rep_csv_sub">Complete harmonized meteorological records spanning 1901 to 2025.</p>
+                    </div>
+                </div>
+
+                <div class="space-y-2 mt-4 text-xs text-gray-300">
+                    <div class="flex justify-between py-1.5 border-b border-navy-800">
+                        <span class="text-gray-400" data-i18n="rep_csv_samples">Total Samples:</span>
+                        <span class="font-mono font-bold text-white" data-i18n="rep_csv_samples_val">4,476 Records</span>
+                    </div>
+                    <div class="flex justify-between py-1.5 border-b border-navy-800">
+                        <span class="text-gray-400" data-i18n="rep_csv_coverage">Geographic Coverage:</span>
+                        <span class="font-mono font-bold text-white" data-i18n="rep_csv_coverage_val">36 Official IMD Subdivisions</span>
+                    </div>
+                    <div class="flex justify-between py-1.5 border-b border-navy-800">
+                        <span class="text-gray-400" data-i18n="rep_csv_temporal">Temporal Coverage:</span>
+                        <span class="font-mono font-bold text-white" data-i18n="rep_csv_temporal_val">1901 – 2025 Continuous (125 Years)</span>
+                    </div>
+                    <div class="flex justify-between py-1.5">
+                        <span class="text-gray-400">Enriched Metrics:</span>
+                        <span class="font-mono font-bold text-cyan-400">LPA Normals, JJAS, OND, Anomalies</span>
+                    </div>
+                </div>
+            </div>
+
+            <a href="/api/export/csv" class="w-full py-3 rounded-xl bg-navy-800 hover:bg-navy-700 text-white border border-navy-600 font-heading font-semibold text-sm flex items-center justify-center gap-2 transition-all">
+                <i data-lucide="download-cloud" class="w-4 h-4 text-emerald-400"></i>
+                <span data-i18n="rep_csv_btn">Download Cleaned CSV Dataset</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- SQLite Prediction Audit Log Table -->
+    <div class="glass-card overflow-hidden">
+        <div class="p-6 border-b border-navy-700 flex items-center justify-between">
+            <div>
+                <h3 class="text-lg font-bold text-white font-heading" data-i18n="rep_audit_title">Recent Predictions Audit Log</h3>
+                <p class="text-xs text-gray-400 mt-1" data-i18n="rep_audit_sub">Persisted forecasting history recorded in local SQLite database (<code>raincast.db</code>).</p>
+            </div>
+            <div class="text-xs text-gray-400">Live Database Sync</div>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm">
+                <thead class="bg-navy-900/80 text-gray-400 text-xs uppercase tracking-wider border-b border-navy-700">
+                    <tr>
+                        <th class="py-3 px-6" data-i18n="th_time">Timestamp</th>
+                        <th class="py-3 px-6">Location</th>
+                        <th class="py-3 px-6" data-i18n="th_year">Horizon</th>
+                        <th class="py-3 px-6" data-i18n="th_model">Model</th>
+                        <th class="py-3 px-6" data-i18n="th_pred">Projected Value</th>
+                        <th class="py-3 px-6">90% Confidence Interval</th>
+                        <th class="py-3 px-6" data-i18n="th_class">IMD Classification</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-navy-800/80 text-gray-200">
+                    {% for row in audit_logs %}
+                    <tr class="hover:bg-navy-850/50 transition-colors">
+                        <td class="py-4 px-6 text-xs text-gray-400">{{ row.timestamp }}</td>
+                        <td class="py-4 px-6 font-bold text-white">{{ row.district }}, {{ row.state }}</td>
+                        <td class="py-4 px-6 font-mono text-cyan-400">Year {{ row.forecast_year }}</td>
+                        <td class="py-4 px-6 text-xs text-gray-300">{{ row.model_name }}</td>
+                        <td class="py-4 px-6 font-mono font-bold text-white">{{ row.predicted_rainfall_mm }} mm</td>
+                        <td class="py-4 px-6 font-mono text-xs text-gray-400">{{ row.confidence_lower }} &ndash; {{ row.confidence_upper }} mm</td>
+                        <td class="py-4 px-6">
+                            {% if row.classification == 'Normal' %}
+                            <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/40">Normal</span>
+                            {% elif 'Excess' in row.classification %}
+                            <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-cyan-500/20 text-cyan-400 border border-cyan-500/40">{{ row.classification }}</span>
+                            {% else %}
+                            <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-500/20 text-rose-400 border border-rose-500/40">{{ row.classification }}</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="7" class="py-8 text-center text-gray-400 text-xs">No prediction records logged yet. Run predictions from the ML Prediction Engine to populate this audit table.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    const pdfState = document.getElementById('pdfStateSelect');
+    const pdfDistrict = document.getElementById('pdfDistrictSelect');
+    const pdfYear = document.getElementById('pdfYearSelect');
+    const pdfModel = document.getElementById('pdfModelSelect');
+    const downloadPdfBtn = document.getElementById('downloadPdfBtn');
+
+    pdfState.addEventListener('change', async () => {
+        const state = pdfState.value;
+        const res = await fetch(`/api/districts/${encodeURIComponent(state)}`);
+        const districts = await res.json();
+        pdfDistrict.innerHTML = '';
+        districts.forEach(d => {
+            const opt = document.createElement('option');
+            opt.value = d;
+            opt.textContent = d;
+            pdfDistrict.appendChild(opt);
+        });
+    });
+
+    downloadPdfBtn.addEventListener('click', () => {
+        const state = pdfState.value;
+        const district = pdfDistrict.value;
+        const year = pdfYear.value;
+        const model = pdfModel.value;
+        const url = `/api/export/pdf?state=${encodeURIComponent(state)}&district=${encodeURIComponent(district)}&forecast_year=${encodeURIComponent(year)}&model_name=${encodeURIComponent(model)}`;
+        window.open(url, '_blank');
+    });
+</script>
+{% endblock %}
